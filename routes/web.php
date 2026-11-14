@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FacebookController;
 use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\SiteController;
 use App\Http\Middleware\EnsureOperator;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +26,18 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('sites', SiteController::class);
     Route::post('/sites/{site}/regenerate-secret', [SiteController::class, 'regenerateSecret']);
+    Route::post('/sites/{site}/check-now', [SiteController::class, 'checkNow']);
+    Route::post('/sites/{site}/test-latest', [SiteController::class, 'testLatest']);
+
+    // ফেসবুক সংযোগ
+    Route::get('/sites/{site}/facebook/connect', [FacebookController::class, 'connect']);
+    Route::get('/facebook/callback', [FacebookController::class, 'callback']);
+    Route::get('/sites/{site}/facebook/pages', [FacebookController::class, 'pages']);
+    Route::post('/sites/{site}/facebook/choose', [FacebookController::class, 'choose']);
+    Route::post('/sites/{site}/facebook/disconnect', [FacebookController::class, 'disconnect']);
+
+    // ব্যর্থ পোস্ট আবার পাঠানো
+    Route::post('/posts/{post}/retry', [PostController::class, 'retry']);
 
     // শুধু অপারেটর
     Route::middleware(EnsureOperator::class)->prefix('operator')->group(function () {

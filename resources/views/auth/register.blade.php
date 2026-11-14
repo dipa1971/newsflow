@@ -1,20 +1,30 @@
-@extends('layout')
+@extends('guest')
+@section('title', 'নিবন্ধন')
 
 @section('content')
-<div class="box" style="max-width:420px;margin:30px auto">
-    <h2>নতুন অ্যাকাউন্ট</h2>
+<div class="panel">
+    <h1>নতুন অ্যাকাউন্ট</h1>
     <form method="POST" action="/register">
         @csrf
-        <label>নাম</label>
-        <input name="name" value="{{ old('name') }}" required>
-        <label>ইমেইল</label>
-        <input type="email" name="email" value="{{ old('email') }}" required>
-        <label>পাসওয়ার্ড (কমপক্ষে ৮ অক্ষর)</label>
-        <input type="password" name="password" required>
-        <label>পাসওয়ার্ড আবার</label>
-        <input type="password" name="password_confirmation" required>
-        <button class="btn">নিবন্ধন করুন</button>
+        <div class="field">
+            <label for="name">নাম</label>
+            <input id="name" name="name" value="{{ old('name') }}" required autofocus>
+        </div>
+        <div class="field">
+            <label for="email">ইমেইল</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required>
+        </div>
+        <div class="field">
+            <label for="password">পাসওয়ার্ড</label>
+            <input id="password" type="password" name="password" required>
+            <div class="hint">কমপক্ষে ৮ অক্ষর।</div>
+        </div>
+        <div class="field">
+            <label for="password_confirmation">পাসওয়ার্ড আবার</label>
+            <input id="password_confirmation" type="password" name="password_confirmation" required>
+        </div>
+        <button class="btn btn-block">নিবন্ধন করুন</button>
     </form>
-    <p>আগে থেকেই অ্যাকাউন্ট আছে? <a href="/login">লগইন করুন</a></p>
 </div>
+<p class="guest-foot">আগে থেকেই অ্যাকাউন্ট আছে? <a href="/login">লগইন করুন</a></p>
 @endsection

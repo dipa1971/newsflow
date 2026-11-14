@@ -6,7 +6,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $sites = auth()->user()->sites()->latest()->get();
+        $sites = auth()->user()->sites()->with('connections')->latest()->get();
 
         return view('dashboard', compact('sites'));
     }

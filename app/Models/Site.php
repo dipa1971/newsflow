@@ -8,17 +8,55 @@ class Site extends Model
 {
     protected $fillable = [
         'user_id', 'name', 'url', 'feed_url', 'district', 'logo_path',
-        'hashtags', 'site_key', 'secret', 'status', 'trial_ends_at',
+        'hashtags', 'design', 'site_key', 'secret', 'status', 'trial_ends_at',
+        'last_checked_at', 'baseline_done_at', 'last_error',
+        'caption_mode', 'caption_template', 'post_facebook', 'post_telegram',
+        'telegram_token', 'telegram_chat',
     ];
 
     protected $casts = [
         'secret' => 'encrypted',
+        'telegram_token' => 'encrypted',
         'trial_ends_at' => 'datetime',
+        'last_checked_at' => 'datetime',
+        'baseline_done_at' => 'datetime',
+        'post_facebook' => 'boolean',
+        'post_telegram' => 'boolean',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function articles()
+    {
+        return $this->hasMany(Article::class);
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    public function connections()
+    {
+        return $this->hasMany(Connection::class);
+    }
+
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    public function facebookConnection(): ?Connection
+    {
+        return $this->connections->firstWhere('provider', 'facebook');
+    }
+
+    public function telegramReady(): bool
+    {
+        return filled($this->telegram_token) && filled($this->telegram_chat);
     }
 
     public function maskedSecret(): string
@@ -32,5 +70,45 @@ class Site extends Model
             return 0;
         }
         return max(0, (int) ceil(now()->diffInDays($this->trial_ends_at, false)));
+    }
+
+    public function isUsable(): bool
+    {
+        return $this->status === 'active'
+            && $this->trial_ends_at !== null
+            && $this->trial_ends_at->isFuture();
+    }
+
+    // শুরুর ধাপের চেকলিস্ট (সাইটের পাতায় দেখানো হয়)
+    public function checklist(): array
+    {
+        $fb = $this->facebookConnection();
+
+        return [
+            [
+                'title' => 'ফিডের ঠিকানা দিন',
+                'done' => filled($this->feed_url),
+                'href' => '/sites/' . $this->id . '/edit#source',
+                'action' => 'ঠিকানা দিন',
+            ],
+            [
+                'title' => 'ফেসবুক পেজ যুক্ত করুন',
+                'done' => $fb && $fb->status === 'active',
+                'href' => '/sites/' . $this->id . '/edit#facebook',
+                'action' => 'যুক্ত করুন',
+            ],
+            [
+                'title' => 'টেলিগ্রাম চ্যানেল যুক্ত করুন (ঐচ্ছিক)',
+                'done' => $this->telegramReady(),
+                'href' => '/sites/' . $this->id . '/edit#telegram',
+                'action' => 'যুক্ত করুন',
+                'optional' => true,
+            ],
+            [
+                'title' => 'প্রথম কার্ড পাঠিয়ে দেখুন',
+                'done' => $this->posts()->where('status', 'sent')->exists(),
+                'test' => true,
+            ],
+        ];
     }
 }
