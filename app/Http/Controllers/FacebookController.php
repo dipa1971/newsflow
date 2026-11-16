@@ -19,9 +19,9 @@ class FacebookController extends Controller
         return $site;
     }
 
-    private function back(Site $site, string $anchor = 'facebook'): string
+    private function back(Site $site): string
     {
-        return '/sites/' . $site->id . '/edit#' . $anchor;
+        return '/sites/' . $site->id . '/connections';
     }
 
     // ১) ফেসবুকের লগইন পাতায় পাঠাই

@@ -23,16 +23,27 @@ class FacebookService
     }
 
     // ফেসবুকের লগইন ও অনুমতির পাতার ঠিকানা
-    public function loginUrl(string $redirect, string $state): string
-    {
-        return 'https://www.facebook.com/' . $this->version() . '/dialog/oauth?' . http_build_query([
-            'client_id' => config('newsflow.facebook.app_id'),
-            'redirect_uri' => $redirect,
-            'state' => $state,
-            'scope' => implode(',', config('newsflow.facebook.scopes')),
-            'response_type' => 'code',
-        ]);
+public function loginUrl(string $redirect, string $state): string
+{
+    $params = [
+        'client_id' => config('newsflow.facebook.app_id'),
+        'redirect_uri' => $redirect,
+        'state' => $state,
+        'response_type' => 'code',
+    ];
+
+
+
+    if (filled(config('newsflow.facebook.config_id'))) {
+        $params['config_id'] = config('newsflow.facebook.config_id');
+        $params['override_default_response_type'] = 'true'; 
+
+    } else {
+        $params['scope'] = implode(',', config('newsflow.facebook.scopes'));
     }
+
+    return 'https://www.facebook.com/' . $this->version() . '/dialog/oauth?' . http_build_query($params);
+}
 
     // ধাপ ১: ফেসবুক যে "কোড" দিয়ে ফেরত পাঠায়, সেটা দিয়ে অল্প সময়ের টোকেন নিই
     public function exchangeCode(string $code, string $redirect): string

@@ -3,9 +3,7 @@
 
 @section('content')
 <nav class="crumbs">
-    <a href="/dashboard">আমার সাইট</a><span>/</span>
-    <a href="/sites/{{ $site->id }}">{{ $site->name }}</a><span>/</span>
-    <a href="/sites/{{ $site->id }}/edit#facebook">সেটিংস</a><span>/</span>
+    <a href="/sites/{{ $site->id }}/connections">সংযোগ</a><span>/</span>
     <b>পেজ বাছুন</b>
 </nav>
 <div class="page-head">
@@ -27,7 +25,7 @@
     </div>
     <div class="form-actions">
         <button class="btn">এই পেজ ব্যবহার করুন</button>
-        <a class="btn btn-outline" href="/sites/{{ $site->id }}/edit#facebook">বাতিল</a>
+        <a class="btn btn-outline" href="/sites/{{ $site->id }}/connections">বাতিল</a>
     </div>
 </form>
 @endsection

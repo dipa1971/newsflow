@@ -200,3 +200,54 @@ details.fold[open] summary { margin-bottom: 14px; }
 .crumbs a { color: var(--muted); text-decoration: none; }
 .crumbs a:hover { color: var(--blue); text-decoration: underline; }
 .crumbs b { color: var(--ink); font-weight: 500; }
+
+/* ================= সংস্করণ ৪: নতুন মেনু ও পাতা ================= */
+.topbar-in { gap: 20px; }
+.menu { gap: 18px; }
+.menu a { white-space: nowrap; }
+.nbadge { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--red); color: #fff; font-size: 12px; line-height: 1.6; }
+
+.right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+.who { margin-left: 0; }
+.oplink { font-size: 14px; color: var(--muted); text-decoration: none; }
+.oplink:hover { color: var(--blue); }
+
+/* সাইট বদলানোর বাক্স */
+.switch { position: relative; }
+.switch summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 7px 12px; max-width: 210px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 14px; }
+.switch summary::-webkit-details-marker { display: none; }
+.switch summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.switch summary::after { content: '▾'; color: var(--muted); }
+.switch-pop { position: absolute; left: 0; top: 46px; min-width: 240px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px; box-shadow: 0 8px 24px rgba(16, 24, 40, .12); z-index: 30; }
+.switch-pop a { display: block; padding: 8px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 14px; }
+.switch-pop a:hover { background: var(--bg); }
+.switch-pop a.cur { background: var(--blue-soft); color: var(--blue); font-weight: 500; }
+.switch-pop hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+
+/* সংখ্যার ঘর, ফিল্টার, পাতা বদল */
+.stat.red { border-top-color: var(--red); }
+a.chip { text-decoration: none; }
+a.chip:hover { filter: brightness(.96); }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.filters a { padding: 5px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); text-decoration: none; font-size: 14px; }
+.filters a.on { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); font-weight: 500; }
+.pager { display: flex; justify-content: space-between; margin-top: 20px; }
+
+/* অটোমেশনের অবস্থার সারি */
+.feat { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.feat:last-child { border-bottom: 0; padding-bottom: 0; }
+.feat:first-of-type { padding-top: 0; }
+.feat .ft { flex: 1; min-width: 0; }
+.feat .ft strong { display: block; font-weight: 500; }
+.feat .ft small { display: block; }
+.feat .chip { min-width: 78px; justify-content: center; }
+.more { font-size: 14px; text-decoration: none; }
+.more:hover { text-decoration: underline; }
+.danger-zone { border-color: #e6b8b3; }
+
+@media (max-width: 900px) {
+  .topbar-in { flex-wrap: wrap; height: auto; padding: 10px 16px; gap: 10px 14px; }
+  .menu { order: 3; width: 100%; overflow-x: auto; gap: 18px; }
+  .menu a { padding: 10px 2px; }
+  .feat { flex-wrap: wrap; }
+}

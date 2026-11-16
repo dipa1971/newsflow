@@ -80,27 +80,29 @@ class Site extends Model
     }
 
     // শুরুর ধাপের চেকলিস্ট (সাইটের পাতায় দেখানো হয়)
+        // শুরুর ধাপের চেকলিস্ট (সারসংক্ষেপ পাতায় দেখানো হয়)
     public function checklist(): array
     {
         $fb = $this->facebookConnection();
+        $base = '/sites/' . $this->id;
 
         return [
             [
                 'title' => 'ফিডের ঠিকানা দিন',
                 'done' => filled($this->feed_url),
-                'href' => '/sites/' . $this->id . '/edit#source',
+                'href' => $base . '/settings',
                 'action' => 'ঠিকানা দিন',
             ],
             [
                 'title' => 'ফেসবুক পেজ যুক্ত করুন',
                 'done' => $fb && $fb->status === 'active',
-                'href' => '/sites/' . $this->id . '/edit#facebook',
+                'href' => $base . '/connections',
                 'action' => 'যুক্ত করুন',
             ],
             [
                 'title' => 'টেলিগ্রাম চ্যানেল যুক্ত করুন (ঐচ্ছিক)',
                 'done' => $this->telegramReady(),
-                'href' => '/sites/' . $this->id . '/edit#telegram',
+                'href' => $base . '/connections',
                 'action' => 'যুক্ত করুন',
                 'optional' => true,
             ],

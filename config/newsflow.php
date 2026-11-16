@@ -14,6 +14,7 @@ return [
 
     'facebook' => [
         'app_id' => env('FB_APP_ID'),
+        'config_id' => env('FB_CONFIG_ID'),
         'app_secret' => env('FB_APP_SECRET'),
         'graph_version' => env('FB_GRAPH_VERSION', 'v25.0'),
         // `pages_manage_posts`-এর সঙ্গে `pages_read_engagement` ও `pages_show_list` একসাথে লাগে

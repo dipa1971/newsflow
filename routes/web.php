@@ -24,17 +24,35 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    Route::resource('sites', SiteController::class);
-    Route::post('/sites/{site}/regenerate-secret', [SiteController::class, 'regenerateSecret']);
-    Route::post('/sites/{site}/check-now', [SiteController::class, 'checkNow']);
-    Route::post('/sites/{site}/test-latest', [SiteController::class, 'testLatest']);
+    Route::resource('sites', SiteController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 
-    // ফেসবুক সংযোগ
-    Route::get('/sites/{site}/facebook/connect', [FacebookController::class, 'connect']);
+    // একটা সাইটের সব কাজের পাতা
+    Route::prefix('sites/{site}')->group(function () {
+        Route::get('/cards', [SiteController::class, 'cards']);
+        Route::get('/log', [SiteController::class, 'log']);
+
+        Route::get('/connections', [SiteController::class, 'connections']);
+        Route::put('/connections', [SiteController::class, 'updateConnections']);
+
+        Route::get('/design', [SiteController::class, 'design']);
+        Route::put('/design', [SiteController::class, 'updateDesign']);
+
+        Route::get('/settings', [SiteController::class, 'settings']);
+        Route::put('/settings', [SiteController::class, 'updateSettings']);
+
+        Route::post('/regenerate-secret', [SiteController::class, 'regenerateSecret']);
+        Route::post('/check-now', [SiteController::class, 'checkNow']);
+        Route::post('/test-latest', [SiteController::class, 'testLatest']);
+
+        // ফেসবুক সংযোগ
+        Route::get('/facebook/connect', [FacebookController::class, 'connect']);
+        Route::get('/facebook/pages', [FacebookController::class, 'pages']);
+        Route::post('/facebook/choose', [FacebookController::class, 'choose']);
+        Route::post('/facebook/disconnect', [FacebookController::class, 'disconnect']);
+    });
+
+    // ফেসবুক যেখানে ফেরত পাঠায় (সাইটের নম্বর এখানে থাকে না, সেশন থেকে নেওয়া হয়)
     Route::get('/facebook/callback', [FacebookController::class, 'callback']);
-    Route::get('/sites/{site}/facebook/pages', [FacebookController::class, 'pages']);
-    Route::post('/sites/{site}/facebook/choose', [FacebookController::class, 'choose']);
-    Route::post('/sites/{site}/facebook/disconnect', [FacebookController::class, 'disconnect']);
 
     // ব্যর্থ পোস্ট আবার পাঠানো
     Route::post('/posts/{post}/retry', [PostController::class, 'retry']);
