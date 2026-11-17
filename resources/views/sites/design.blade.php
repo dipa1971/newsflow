@@ -16,7 +16,10 @@
     <section class="panel">
         <div class="sec-head">
             <span class="num">১</span>
-            <div><h2>কার্ডের চেহারা</h2></div>
+            <div>
+                <h2>কার্ডের চেহারা</h2>
+                <p class="sub">তৈরি ডিজাইন বাছুন, অথবা নিজের মতো করে বানান।</p>
+            </div>
         </div>
 
         <div class="choices">
@@ -33,9 +36,33 @@
                     </span>
                 </label>
             @endforeach
+
+            @foreach($site->customDesigns as $c)
+                <div class="choice-wrap">
+                    <label class="choice">
+                        <input type="radio" name="design" value="custom_{{ $c->id }}" @checked(old('design', $site->design) === 'custom_' . $c->id)>
+                        <span class="choice-body">
+                            @if($c->thumbUrl())
+                                <img src="{{ $c->thumbUrl() }}" alt="">
+                            @else
+                                <span class="ph">নমুনা নেই</span>
+                            @endif
+                            <span class="nm">{{ $c->name }} <small>(নিজের)</small></span>
+                        </span>
+                    </label>
+                    <div class="choice-tools">
+                        <a href="/sites/{{ $site->id }}/designs/{{ $c->id }}/edit">বদলান</a>
+                    </div>
+                </div>
+            @endforeach
+
+            <a class="choice-new" href="/sites/{{ $site->id }}/designs/create">
+                <span>+</span>
+                নিজের ডিজাইন বানান
+            </a>
         </div>
 
-        <div class="field" style="margin:20px 0 0">
+        <div class="field" style="margin:24px 0 0">
             <label for="logo">লোগো</label>
             <input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
             <div class="hint">PNG বা JPG, সর্বোচ্চ ২ MB। না দিলে সাইটের নাম লেখা হবে।</div>

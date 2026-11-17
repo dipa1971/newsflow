@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CustomDesign;
 use App\Models\Site;
 use App\Support\Bangla;
 use Illuminate\Support\Facades\Storage;
@@ -20,26 +21,56 @@ class CardRenderer
     ];
 
     /**
-     * কার্ড বানিয়ে storage/app/public/$outPath-এ রাখে।
-     * $photoPath ও $outPath দুটোই "public" ডিস্কের ভেতরের পথ।
+     * Card-এর HTML বানায়। $cfg দিলে সেই setting দিয়ে "নিজের design"-এর চেহারা হয় (preview-তে কাজে লাগে)।
+     * না দিলে site-এর বাছা design ব্যবহার হয়।
      */
-    public function render(Site $site, string $headline, string $photoPath, string $outPath): void
+    public function html(Site $site, string $headline, string $photoPath, ?array $cfg = null): string
     {
-        $width = config('newsflow.card_width');
-        $height = config('newsflow.card_height');
-
-        $design = array_key_exists((string) $site->design, self::DESIGNS) ? $site->design : 'design1';
         $disk = Storage::disk('public');
+        $design = (string) $site->design;
+        $view = 'cards.design1';
 
-        // ১) ডিজাইনের HTML বানাই
-        $html = view('cards.' . $design, [
+        if ($cfg !== null) {
+            $view = 'cards.custom';
+            $cfg = array_merge(CustomDesign::defaults(), $cfg);
+        } elseif (str_starts_with($design, 'custom_')) {
+            $custom = CustomDesign::where('site_id', $site->id)->find((int) substr($design, 7));
+            if ($custom) {
+                $view = 'cards.custom';
+                $cfg = $custom->cfg();
+            }
+        } elseif (array_key_exists($design, self::DESIGNS)) {
+            $view = 'cards.' . $design;
+        }
+
+        $logo = null;
+        if ($site->logo_path && $disk->exists($site->logo_path)) {
+            $logo = $this->dataUri($disk->path($site->logo_path));
+        }
+
+        return view($view, [
             'headline' => $headline,
             'siteName' => $site->name,
             'dateText' => Bangla::date(now()),
             'photo' => $this->dataUri($disk->path($photoPath)),
-            'logo' => $site->logo_path ? $this->dataUri($disk->path($site->logo_path)) : null,
+            'logo' => $logo,
             'font' => $this->fontCss(),
+            'cfg' => $cfg ?? CustomDesign::defaults(),
         ])->render();
+    }
+
+    /**
+     * কার্ড বানিয়ে storage/app/public/$outPath-এ রাখে।
+     * $photoPath ও $outPath দুটোই "public" ডিস্কের ভেতরের পথ।
+     */
+    public function render(Site $site, string $headline, string $photoPath, string $outPath, ?array $cfg = null): void
+    {
+        $width = config('newsflow.card_width');
+        $height = config('newsflow.card_height');
+        $disk = Storage::disk('public');
+
+        // ১) ডিজাইনের HTML বানাই
+        $html = $this->html($site, $headline, $photoPath, $cfg);
 
         // ২) অস্থায়ী ফাইলে রাখি
         $tmpDir = storage_path('app/tmp');
@@ -71,6 +102,26 @@ class CardRenderer
         @unlink($pngFile);
     }
 
+    // Preview ও থাম্বনেইলের জন্য নমুনা ছবি (না থাকলে বানায়)
+    public function samplePhoto(): string
+    {
+        $disk = Storage::disk('public');
+        $path = 'design-previews/sample-photo.jpg';
+
+        if (!$disk->exists($path)) {
+            $disk->makeDirectory('design-previews');
+            $img = imagecreatetruecolor(1080, 1000);
+            for ($y = 0; $y < 1000; $y++) {
+                $c = imagecolorallocate($img, 40 + (int) ($y / 12), 90 + (int) ($y / 14), 140 + (int) ($y / 20));
+                imageline($img, 0, $y, 1080, $y, $c);
+            }
+            imagejpeg($img, $disk->path($path), 85);
+            imagedestroy($img);
+        }
+
+        return $path;
+    }
+
     private function screenshot(string $htmlFile, string $pngFile, int $width, int $height): void
     {
         $chrome = (string) config('newsflow.chrome_path');
@@ -85,9 +136,7 @@ class CardRenderer
             '--disable-gpu',
             '--hide-scrollbars',
             '--force-device-scale-factor=1',
-            // উচ্চতা বেশি রাখি, কারণ Chrome কখনো কখনো কিছুটা কম উচ্চতার ছবি দেয়। পরে কেটে নিই
             '--window-size=' . $width . ',' . ($height + 200),
-            // আলাদা প্রোফাইল, যাতে চালু থাকা আপনার Chrome-এর সঙ্গে গোলমাল না হয়
             '--user-data-dir=' . storage_path('app/chrome-profile'),
             '--virtual-time-budget=4000',
             '--screenshot=' . $pngFile,
@@ -107,7 +156,6 @@ class CardRenderer
         }
     }
 
-    // ছবিকে HTML-এর ভেতরেই বসিয়ে দিই, যাতে ফাইলের পথ নিয়ে ঝামেলা না হয়
     private function dataUri(string $file): string
     {
         $mime = mime_content_type($file) ?: 'image/jpeg';

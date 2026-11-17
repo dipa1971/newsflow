@@ -113,4 +113,21 @@ class Site extends Model
             ],
         ];
     }
+
+        public function customDesigns()
+    {
+        return $this->hasMany(CustomDesign::class);
+    }
+
+    // Design-এর নাম দেখানোর জন্য (built-in বা নিজের)
+    public function designLabel(): string
+    {
+        if (str_starts_with((string) $this->design, 'custom_')) {
+            $c = $this->customDesigns->firstWhere('id', (int) substr($this->design, 7));
+
+            return $c ? $c->name . ' (নিজের)' : 'ডিজাইন মুছে গেছে';
+        }
+
+        return \App\Services\CardRenderer::DESIGNS[$this->design] ?? (string) $this->design;
+    }
 }

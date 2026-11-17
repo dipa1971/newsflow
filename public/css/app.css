@@ -251,3 +251,30 @@ a.chip:hover { filter: brightness(.96); }
   .menu a { padding: 10px 2px; }
   .feat { flex-wrap: wrap; }
 }
+
+/* ================= নিজের ডিজাইন (Design Studio) ================= */
+.studio { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+.preview-box { position: sticky; top: 84px; }
+.frame { width: 324px; height: 405px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.frame iframe { width: 1080px; height: 1350px; border: 0; transform: scale(.3); transform-origin: 0 0; }
+
+.colors { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.field input[type=color] { height: 42px; padding: 3px; cursor: pointer; }
+.field input[type=range] { padding: 0; accent-color: var(--blue); }
+
+.presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.preset { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+.preset:hover { border-color: var(--blue); background: var(--blue-soft); }
+.preset .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0, 0, 0, .15); }
+
+.choice-wrap { display: block; }
+.choice-tools { display: flex; justify-content: center; margin-top: 6px; font-size: 13px; }
+.choice-new { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 180px; border: 2px dashed #b9c6dc; border-radius: 10px; color: var(--blue); text-decoration: none; font-weight: 500; font-size: 14px; text-align: center; padding: 12px; }
+.choice-new span { font-size: 28px; line-height: 1; }
+.choice-new:hover { background: var(--blue-soft); border-color: var(--blue); }
+
+@media (max-width: 900px) {
+  .studio { grid-template-columns: 1fr; }
+  .preview-box { position: static; order: -1; }
+  .colors { grid-template-columns: 1fr 1fr; }
+}

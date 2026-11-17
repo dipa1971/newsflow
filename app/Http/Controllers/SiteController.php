@@ -171,7 +171,7 @@ class SiteController extends Controller
 
     public function design(Site $site)
     {
-        $this->own($site);
+        $this->own($site)->load('customDesigns');
 
         // নমুনা ছবি থাকলে দেখাই (php artisan cards:previews দিয়ে বানানো)
         $previews = [];
@@ -188,8 +188,14 @@ class SiteController extends Controller
     {
         $this->own($site);
 
+        // built-in ৫টি + এই সাইটের নিজের design
+        $allowed = array_merge(
+            array_keys(CardRenderer::DESIGNS),
+            $site->customDesigns()->pluck('id')->map(fn ($id) => 'custom_' . $id)->all()
+        );
+
         $data = $request->validate([
-            'design' => ['required', Rule::in(array_keys(CardRenderer::DESIGNS))],
+            'design' => ['required', Rule::in($allowed)],
             'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
             'caption_mode' => ['required', Rule::in(['title_hashtags', 'custom', 'none'])],
             'caption_template' => 'nullable|string|max:500',

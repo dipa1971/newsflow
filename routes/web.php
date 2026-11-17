@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomDesignController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FacebookController;
 use App\Http\Controllers\OperatorController;
@@ -36,6 +37,14 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/design', [SiteController::class, 'design']);
         Route::put('/design', [SiteController::class, 'updateDesign']);
+
+        // নিজের card design (Design Studio)
+        Route::get('/designs/create', [CustomDesignController::class, 'create']);
+        Route::post('/designs', [CustomDesignController::class, 'store']);
+        Route::get('/designs/preview', [CustomDesignController::class, 'preview']);
+        Route::get('/designs/{design}/edit', [CustomDesignController::class, 'edit']);
+        Route::put('/designs/{design}', [CustomDesignController::class, 'update']);
+        Route::delete('/designs/{design}', [CustomDesignController::class, 'destroy']);
 
         Route::get('/settings', [SiteController::class, 'settings']);
         Route::put('/settings', [SiteController::class, 'updateSettings']);

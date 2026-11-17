@@ -7,7 +7,7 @@
     $steps = $site->checklist();
     $pending = collect($steps)->contains(fn ($s) => !$s['done'] && empty($s['optional']));
     $fb = $site->facebookConnection();
-    $design = \App\Services\CardRenderer::DESIGNS[$site->design] ?? $site->design;
+    $design = $site->designLabel();
     $base = '/sites/' . $site->id;
 
     $fbState = !$fb ? ['যুক্ত নয়', '']

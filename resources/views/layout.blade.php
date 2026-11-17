@@ -16,7 +16,7 @@
         ['সারসংক্ষেপ', $b, ['sites/' . $id]],
         ['খবর ও কার্ড', $b . '/cards', ['sites/' . $id . '/cards']],
         ['সংযোগ', $b . '/connections', ['sites/' . $id . '/connections', 'sites/' . $id . '/facebook/*']],
-        ['ডিজাইন', $b . '/design', ['sites/' . $id . '/design']],
+        ['ডিজাইন', $b . '/design', ['sites/' . $id . '/design', 'sites/' . $id . '/designs/*']],
         ['লগ', $b . '/log', ['sites/' . $id . '/log']],
         ['সেটিংস', $b . '/settings', ['sites/' . $id . '/settings']],
     ] : [];
