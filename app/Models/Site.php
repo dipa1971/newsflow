@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class Site extends Model
 {
     protected $fillable = [
-        'user_id', 'name', 'url', 'feed_url', 'district', 'logo_path',
+        'user_id', 'name', 'url', 'feed_url', 'district', 'logo_path', 'icon_path',
         'hashtags', 'design', 'site_key', 'secret', 'status', 'trial_ends_at',
         'last_checked_at', 'baseline_done_at', 'last_error',
         'caption_mode', 'caption_template', 'post_facebook', 'post_telegram',
         'telegram_token', 'telegram_chat',
+        'card_show_category', 'card_show_url', 'card_photo_tag',
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class Site extends Model
         'baseline_done_at' => 'datetime',
         'post_facebook' => 'boolean',
         'post_telegram' => 'boolean',
+        'card_show_category' => 'boolean',
+        'card_show_url' => 'boolean',
     ];
 
     public function user()
@@ -49,6 +52,11 @@ class Site extends Model
         return $this->hasMany(Post::class);
     }
 
+    public function customDesigns()
+    {
+        return $this->hasMany(CustomDesign::class);
+    }
+
     public function facebookConnection(): ?Connection
     {
         return $this->connections->firstWhere('provider', 'facebook');
@@ -57,6 +65,14 @@ class Site extends Model
     public function telegramReady(): bool
     {
         return filled($this->telegram_token) && filled($this->telegram_chat);
+    }
+
+    // কার্ডে ছাপার ঠিকানা: https://www.prothomalo.com/ থেকে prothomalo.com
+    public function domain(): string
+    {
+        $host = parse_url((string) $this->url, PHP_URL_HOST) ?: '';
+
+        return (string) preg_replace('/^www\./i', '', $host);
     }
 
     public function maskedSecret(): string
@@ -79,8 +95,19 @@ class Site extends Model
             && $this->trial_ends_at->isFuture();
     }
 
-    // শুরুর ধাপের চেকলিস্ট (সাইটের পাতায় দেখানো হয়)
-        // শুরুর ধাপের চেকলিস্ট (সারসংক্ষেপ পাতায় দেখানো হয়)
+    // Design-এর নাম দেখানোর জন্য (built-in বা নিজের)
+    public function designLabel(): string
+    {
+        if (str_starts_with((string) $this->design, 'custom_')) {
+            $c = $this->customDesigns->firstWhere('id', (int) substr($this->design, 7));
+
+            return $c ? $c->name . ' (নিজের)' : 'ডিজাইন মুছে গেছে';
+        }
+
+        return \App\Services\CardRenderer::DESIGNS[$this->design] ?? (string) $this->design;
+    }
+
+    // শুরুর ধাপের চেকলিস্ট (Overview পাতায় দেখানো হয়)
     public function checklist(): array
     {
         $fb = $this->facebookConnection();
@@ -112,22 +139,5 @@ class Site extends Model
                 'test' => true,
             ],
         ];
-    }
-
-        public function customDesigns()
-    {
-        return $this->hasMany(CustomDesign::class);
-    }
-
-    // Design-এর নাম দেখানোর জন্য (built-in বা নিজের)
-    public function designLabel(): string
-    {
-        if (str_starts_with((string) $this->design, 'custom_')) {
-            $c = $this->customDesigns->firstWhere('id', (int) substr($this->design, 7));
-
-            return $c ? $c->name . ' (নিজের)' : 'ডিজাইন মুছে গেছে';
-        }
-
-        return \App\Services\CardRenderer::DESIGNS[$this->design] ?? (string) $this->design;
     }
 }

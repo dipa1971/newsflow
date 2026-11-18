@@ -184,11 +184,11 @@ class SiteController extends Controller
         return view('sites.design', compact('site', 'previews'));
     }
 
-    public function updateDesign(Request $request, Site $site)
+        public function updateDesign(Request $request, Site $site)
     {
         $this->own($site);
 
-        // built-in ৫টি + এই সাইটের নিজের design
+        // built-in ডিজাইন + এই সাইটের নিজের ডিজাইন
         $allowed = array_merge(
             array_keys(CardRenderer::DESIGNS),
             $site->customDesigns()->pluck('id')->map(fn ($id) => 'custom_' . $id)->all()
@@ -197,18 +197,26 @@ class SiteController extends Controller
         $data = $request->validate([
             'design' => ['required', Rule::in($allowed)],
             'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+            'icon' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+            'card_photo_tag' => 'nullable|string|max:40',
             'caption_mode' => ['required', Rule::in(['title_hashtags', 'custom', 'none'])],
             'caption_template' => 'nullable|string|max:500',
             'hashtags' => 'nullable|string|max:200',
         ]);
 
-        if ($request->hasFile('logo')) {
-            if ($site->logo_path) {
-                Storage::disk('public')->delete($site->logo_path);
+        foreach (['logo' => 'logo_path', 'icon' => 'icon_path'] as $field => $column) {
+            if ($request->hasFile($field)) {
+                if ($site->{$column}) {
+                    Storage::disk('public')->delete($site->{$column});
+                }
+                $data[$column] = $request->file($field)->store('logos', 'public');
             }
-            $data['logo_path'] = $request->file('logo')->store('logos', 'public');
+            unset($data[$field]);
         }
-        unset($data['logo']);
+
+        // টিক-বাক্সে টিক না দিলে কিছুই আসে না, তাই আলাদা করে পড়ি
+        $data['card_show_category'] = $request->boolean('card_show_category');
+        $data['card_show_url'] = $request->boolean('card_show_url');
 
         $site->update($data);
 

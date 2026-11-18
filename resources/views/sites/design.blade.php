@@ -61,20 +61,65 @@
                 নিজের ডিজাইন বানান
             </a>
         </div>
-
-        <div class="field" style="margin:24px 0 0">
-            <label for="logo">লোগো</label>
-            <input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
-            <div class="hint">PNG বা JPG, সর্বোচ্চ ২ MB। না দিলে সাইটের নাম লেখা হবে।</div>
-            @if($site->logo_path)
-                <img src="{{ asset('storage/'.$site->logo_path) }}" alt="" style="max-height:40px;margin-top:10px">
-            @endif
-        </div>
     </section>
 
     <section class="panel">
         <div class="sec-head">
             <span class="num">২</span>
+            <div>
+                <h2>লোগো ও গোল আইকন</h2>
+                <p class="sub">গোল লোগোর ডিজাইনে আইকন বসে। আইকন না দিলে লোগো, তা-ও না থাকলে নামের প্রথম অক্ষর।</p>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="field">
+                <label for="logo">লোগো (লম্বা বা চওড়া)</label>
+                <input id="logo" type="file" name="logo" accept="image/png,image/jpeg">
+                <div class="hint">PNG বা JPG, সর্বোচ্চ ২ MB। কার্ডের নিচে বা কোণে বসে।</div>
+                @if($site->logo_path)
+                    <img src="{{ asset('storage/'.$site->logo_path) }}" alt="" style="max-height:48px;margin-top:10px">
+                @endif
+            </div>
+            <div class="field">
+                <label for="icon">গোল আইকন (চৌকো, ৫১২×৫১২ হলে সবচেয়ে ভালো)</label>
+                <input id="icon" type="file" name="icon" accept="image/png,image/jpeg">
+                <div class="hint">গোল বাক্সের ভেতরে এটা বড় করে বসে।</div>
+                @if($site->icon_path)
+                    <img src="{{ asset('storage/'.$site->icon_path) }}" alt="" style="max-height:48px;margin-top:10px">
+                @endif
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="sec-head">
+            <span class="num">৩</span>
+            <div>
+                <h2>কার্ডে কী কী তথ্য থাকবে</h2>
+                <p class="sub">গোল লোগোর ডিজাইন ও নিজের ডিজাইনে কাজ করে।</p>
+            </div>
+        </div>
+
+        <label class="check" style="margin-top:0">
+            <input type="checkbox" name="card_show_category" value="1" @checked(old('card_show_category', $site->card_show_category ?? true))>
+            খবরের ক্যাটাগরি দেখান (খবরে ক্যাটাগরি না থাকলে কিছু দেখাবে না)
+        </label>
+        <label class="check">
+            <input type="checkbox" name="card_show_url" value="1" @checked(old('card_show_url', $site->card_show_url ?? true))>
+            ওয়েবসাইটের ঠিকানা দেখান ({{ $site->domain() ?: 'ঠিকানা নেই' }})
+        </label>
+
+        <div class="field" style="margin:20px 0 0">
+            <label for="card_photo_tag">ছবির কোণের লেখা (ঐচ্ছিক)</label>
+            <input id="card_photo_tag" name="card_photo_tag" maxlength="40" value="{{ old('card_photo_tag', $site->card_photo_tag) }}" placeholder="যেমন: সংগৃহীত">
+            <div class="hint">ফাঁকা রাখলে কিছু দেখাবে না। এই লেখা প্রতিটি কার্ডে একই থাকে, তাই এমন লেখা দিন যা সব ছবির জন্য সত্য।</div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="sec-head">
+            <span class="num">৪</span>
             <div><h2>ক্যাপশন ও হ্যাশট্যাগ</h2></div>
         </div>
 

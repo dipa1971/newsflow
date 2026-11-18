@@ -19,7 +19,6 @@ class CustomDesignController extends Controller
         return $site;
     }
 
-    // এই design কি এই site-এর?
     private function mine(Site $site, CustomDesign $design): CustomDesign
     {
         abort_unless($design->site_id === $site->id, 404);
@@ -34,6 +33,7 @@ class CustomDesignController extends Controller
         return view('sites.designs.form', [
             'site' => $site,
             'design' => new CustomDesign(['name' => '', 'settings' => CustomDesign::defaults()]),
+            'fonts' => CardRenderer::availableFonts(),
         ]);
     }
 
@@ -66,7 +66,11 @@ class CustomDesignController extends Controller
         $this->own($site);
         $this->mine($site, $design);
 
-        return view('sites.designs.form', compact('site', 'design'));
+        return view('sites.designs.form', [
+            'site' => $site,
+            'design' => $design,
+            'fonts' => CardRenderer::availableFonts(),
+        ]);
     }
 
     public function update(Request $request, Site $site, CustomDesign $design, CardRenderer $renderer)
@@ -95,7 +99,6 @@ class CustomDesignController extends Controller
         $this->own($site);
         $this->mine($site, $design);
 
-        // এই design চালু থাকলে আবার প্রথম built-in-এ ফিরিয়ে দিই
         if ($site->design === 'custom_' . $design->id) {
             $site->update(['design' => 'design1']);
         }
@@ -106,25 +109,26 @@ class CustomDesignController extends Controller
         return redirect('/sites/' . $site->id . '/design')->with('ok', 'ডিজাইন মুছে ফেলা হয়েছে।');
     }
 
-    // Editor-এর পাশের live preview: card-এর HTML ফেরত দেয় (ছবি নয়, তাই দ্রুত)
+    // Studio-র পাশের live preview: card-এর HTML ফেরত দেয় (ছবি নয়, তাই দ্রুত)
     public function preview(Request $request, Site $site, CardRenderer $renderer)
     {
         $this->own($site);
 
         $cfg = CustomDesign::normalize($request->query());
 
-        // সাইটের সর্বশেষ আসল খবর থাকলে সেটা, না থাকলে নমুনা
         $article = $site->articles()->whereNotNull('image_path')->latest()->first();
+        $meta = ['category' => 'বাংলাদেশ'];
 
         if ($article && Storage::disk('public')->exists($article->image_path)) {
             $headline = $article->title;
             $photo = $article->image_path;
+            $meta = ['category' => $article->category];
         } else {
             $headline = 'এখানে খবরের শিরোনাম থাকবে, লম্বা হলে নিজে থেকে ছোট হবে';
             $photo = $renderer->samplePhoto();
         }
 
-        return response($renderer->html($site, $headline, $photo, $cfg));
+        return response($renderer->html($site, $headline, $photo, $cfg, $meta));
     }
 
     // Design page-এ দেখানোর ছোট ছবি
@@ -133,10 +137,11 @@ class CustomDesignController extends Controller
         try {
             $renderer->render(
                 $site,
-                'এখানে খবরের শিরোনাম থাকবে',
+                'এখানে খবরের শিরোনাম থাকবে, বাকি অংশ আলাদা রঙে',
                 $renderer->samplePhoto(),
                 'design-previews/custom-' . $design->id . '.jpg',
-                $design->cfg()
+                $design->cfg(),
+                ['category' => 'বাংলাদেশ']
             );
         } catch (\Throwable $e) {
             report($e);   // ছবি না হলেও design সংরক্ষিত থাকে, ত্রুটি storage/logs/laravel.log-এ যায়

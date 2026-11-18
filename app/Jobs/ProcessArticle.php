@@ -43,7 +43,7 @@ class ProcessArticle implements ShouldQueue
             $photo = $images->download($article->image_url, $site->id);
             $out = 'cards/' . $site->id . '/' . $article->id . '.jpg';
 
-            $renderer->render($site, $article->title, $photo, $out);
+            $renderer->render($site, $article->title, $photo, $out, null, ['category' => $article->category]);
 
             $article->update(['image_path' => $photo, 'status' => 'carded', 'skip_reason' => null]);
 

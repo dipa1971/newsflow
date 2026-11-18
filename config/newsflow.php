@@ -26,4 +26,10 @@ return [
             'pages_manage_engagement',
         ],
     ],
+     'fonts' => [
+        'noto_sans' => ['label' => 'Noto Sans Bengali', 'file' => 'noto-sans-bengali.ttf'],
+        'noto_serif' => ['label' => 'Noto Serif Bengali (সেরিফ)', 'file' => 'noto-serif-bengali.ttf'],
+        'anek' => ['label' => 'Anek Bangla', 'file' => 'anek-bangla.ttf'],
+        'baloo' => ['label' => 'Baloo Da 2 (গোল ধাঁচ)', 'file' => 'baloo-da-2.ttf'],
+    ],
 ];

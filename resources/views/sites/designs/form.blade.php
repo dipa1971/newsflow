@@ -39,6 +39,10 @@
                         <span><strong>ছবি উপরে, লেখা নিচে</strong><small>ক্লাসিক ধাঁচ</small></span>
                     </label>
                     <label class="radio">
+                        <input type="radio" name="layout" value="circle" @checked($cfg['layout'] === 'circle')>
+                        <span><strong>গোল লোগো মাঝে</strong><small>লোগো বা আইকন ছবি আর লেখার মাঝখানে গোল বাক্সে বসে</small></span>
+                    </label>
+                    <label class="radio">
                         <input type="radio" name="layout" value="overlay" @checked($cfg['layout'] === 'overlay')>
                         <span><strong>পুরো ছবির ওপরে লেখা</strong><small>ছবি বড় দেখায়</small></span>
                     </label>
@@ -70,13 +74,29 @@
                     <input id="text_color" type="color" name="text_color" value="{{ $cfg['text_color'] }}">
                 </div>
                 <div class="field">
+                    <label for="lead_color">শিরোনামের প্রথম অংশের রঙ</label>
+                    <input id="lead_color" type="color" name="lead_color" value="{{ $cfg['lead_color'] }}">
+                </div>
+                <div class="field">
                     <label for="accent_color">দাগ বা রেখার রঙ</label>
                     <input id="accent_color" type="color" name="accent_color" value="{{ $cfg['accent_color'] }}">
                 </div>
                 <div class="field">
-                    <label for="meta_color">নাম ও তারিখের রঙ</label>
+                    <label for="meta_color">নাম, তারিখ ও ঠিকানার রঙ</label>
                     <input id="meta_color" type="color" name="meta_color" value="{{ $cfg['meta_color'] }}">
                 </div>
+            </div>
+
+            <div class="field">
+                <label for="font">ফন্ট</label>
+                <select id="font" name="font">
+                    @foreach($fonts as $key => $label)
+                        <option value="{{ $key }}" @selected($cfg['font'] === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @if(count($fonts) === 1)
+                    <div class="hint">আরও ফন্ট চাইলে ফন্টের ফাইল public/fonts/ ফোল্ডারে রাখুন (নিয়ম আগের বার্তায় আছে)।</div>
+                @endif
             </div>
 
             <div class="form-row">
@@ -101,6 +121,7 @@
                 </div>
             </div>
 
+            <label class="check"><input type="checkbox" name="two_tone" value="1" @checked($cfg['two_tone'])> শিরোনামের প্রথম কমা পর্যন্ত অংশ আলাদা রঙে দেখান</label>
             <label class="check"><input type="checkbox" name="accent_bar" value="1" @checked($cfg['accent_bar'])> রঙিন দাগ দেখান</label>
             <label class="check"><input type="checkbox" name="show_brand" value="1" @checked($cfg['show_brand'])> লোগো বা সাইটের নাম দেখান</label>
             <label class="check"><input type="checkbox" name="show_date" value="1" @checked($cfg['show_date'])> তারিখ দেখান</label>
@@ -121,7 +142,7 @@
         <div class="frame">
             <iframe id="pv" data-src="{{ $base }}/designs/preview" title="কার্ডের নমুনা"></iframe>
         </div>
-        <p class="hint">সাইটের সর্বশেষ আসল খবর থাকলে সেটাই দেখাবে, না থাকলে নমুনা লেখা।</p>
+        <p class="hint">সাইটের সর্বশেষ আসল খবর থাকলে সেটাই দেখাবে, না থাকলে নমুনা লেখা। ক্যাটাগরি, ঠিকানা ও ছবির কোণের লেখা “ডিজাইন” পাতার সেটিং থেকে আসে।</p>
     </aside>
 </div>
 
@@ -142,9 +163,9 @@
     function update() {
         var fd = new FormData(form);
         var p = new URLSearchParams();
-        ['layout', 'panel_color', 'text_color', 'accent_color', 'meta_color', 'font_size', 'overlay', 'align']
+        ['layout', 'panel_color', 'text_color', 'lead_color', 'accent_color', 'meta_color', 'font', 'font_size', 'overlay', 'align']
             .forEach(function (k) { p.set(k, fd.get(k) || ''); });
-        ['accent_bar', 'show_brand', 'show_date']
+        ['accent_bar', 'show_brand', 'show_date', 'two_tone']
             .forEach(function (k) { if (fd.get(k)) { p.set(k, '1'); } });
         frame.src = base + '?' + p.toString();
     }

@@ -11,13 +11,13 @@ class CustomDesign extends Model
 
     protected $casts = ['settings' => 'array'];
 
-    // এক ক্লিকের রঙের সেট (editor-এর preset বোতামে ব্যবহার হয়)
+    // এক ক্লিকের রঙের সেট (Studio-র preset বোতামে ব্যবহার হয়)
     public const PRESETS = [
-        'নীল' => ['panel_color' => '#1f3d7a', 'text_color' => '#ffffff', 'accent_color' => '#f2b01e', 'meta_color' => '#c9d6ee'],
-        'সবুজ' => ['panel_color' => '#0f4d3a', 'text_color' => '#ffffff', 'accent_color' => '#f2b01e', 'meta_color' => '#cfe6dc'],
-        'লাল' => ['panel_color' => '#8f1d14', 'text_color' => '#ffffff', 'accent_color' => '#f2b01e', 'meta_color' => '#f3d0cc'],
-        'হলুদ' => ['panel_color' => '#f2b01e', 'text_color' => '#1a2433', 'accent_color' => '#1f3d7a', 'meta_color' => '#4a3a10'],
-        'সাদা' => ['panel_color' => '#ffffff', 'text_color' => '#111827', 'accent_color' => '#1f4fa3', 'meta_color' => '#5b6778'],
+        'নীল' => ['panel_color' => '#1f3d7a', 'text_color' => '#ffffff', 'accent_color' => '#f2b01e', 'meta_color' => '#c9d6ee', 'lead_color' => '#f2b01e'],
+        'সবুজ' => ['panel_color' => '#0f4d3a', 'text_color' => '#ffffff', 'accent_color' => '#f2b01e', 'meta_color' => '#cfe6dc', 'lead_color' => '#f2b01e'],
+        'লাল' => ['panel_color' => '#8f1d14', 'text_color' => '#ffffff', 'accent_color' => '#f2b01e', 'meta_color' => '#f3d0cc', 'lead_color' => '#f2b01e'],
+        'হলুদ' => ['panel_color' => '#f2b01e', 'text_color' => '#1a2433', 'accent_color' => '#1f3d7a', 'meta_color' => '#4a3a10', 'lead_color' => '#8f1d14'],
+        'সাদা' => ['panel_color' => '#ffffff', 'text_color' => '#111827', 'accent_color' => '#1f4fa3', 'meta_color' => '#5b6778', 'lead_color' => '#b42318'],
     ];
 
     public function site()
@@ -34,12 +34,15 @@ class CustomDesign extends Model
             'text_color' => '#ffffff',
             'accent_color' => '#f2b01e',
             'meta_color' => '#c9d6ee',
+            'lead_color' => '#b42318',
+            'font' => 'default',
             'font_size' => 62,
             'overlay' => 80,
             'align' => 'left',
             'accent_bar' => true,
             'show_date' => true,
             'show_brand' => true,
+            'two_tone' => false,
         ];
     }
 
@@ -56,19 +59,23 @@ class CustomDesign extends Model
         };
         $flag = fn (string $key) => filter_var($in[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
         $num = fn (string $key, int $min, int $max) => max($min, min($max, (int) ($in[$key] ?? $d[$key])));
+        $fonts = array_merge(['default'], array_keys(config('newsflow.fonts', [])));
 
         return [
-            'layout' => in_array($in['layout'] ?? null, ['bottom', 'overlay', 'top'], true) ? $in['layout'] : $d['layout'],
+            'layout' => in_array($in['layout'] ?? null, ['bottom', 'overlay', 'top', 'circle'], true) ? $in['layout'] : $d['layout'],
             'panel_color' => $color('panel_color'),
             'text_color' => $color('text_color'),
             'accent_color' => $color('accent_color'),
             'meta_color' => $color('meta_color'),
+            'lead_color' => $color('lead_color'),
+            'font' => in_array($in['font'] ?? null, $fonts, true) ? $in['font'] : 'default',
             'font_size' => $num('font_size', 44, 80),
             'overlay' => $num('overlay', 40, 95),
             'align' => in_array($in['align'] ?? null, ['left', 'center', 'right'], true) ? $in['align'] : $d['align'],
             'accent_bar' => $flag('accent_bar'),
             'show_date' => $flag('show_date'),
             'show_brand' => $flag('show_brand'),
+            'two_tone' => $flag('two_tone'),
         ];
     }
 
@@ -84,6 +91,22 @@ class CustomDesign extends Model
             hexdec(substr($hex, 4, 2)),
             $alpha
         );
+    }
+
+    // রঙ কতটা উজ্জ্বল (০ = কালো, ১ = সাদা)
+    public static function luminance(string $hex): float
+    {
+        $hex = ltrim($hex, '#');
+
+        return (0.2126 * hexdec(substr($hex, 0, 2))
+            + 0.7152 * hexdec(substr($hex, 2, 2))
+            + 0.0722 * hexdec(substr($hex, 4, 2))) / 255;
+    }
+
+    // দুটো রঙের মধ্যে গাঢ়টা (সাদা গোল বাক্সে অক্ষর পড়ার জন্য)
+    public static function darker(string $a, string $b): string
+    {
+        return self::luminance($a) <= self::luminance($b) ? $a : $b;
     }
 
     // সংরক্ষিত setting + ফাঁকা জায়গায় default

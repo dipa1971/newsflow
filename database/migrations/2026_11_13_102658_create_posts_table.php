@@ -11,28 +11,18 @@ return new class extends Migration
      */
    public function up(): void
 {
-    Schema::create('posts', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('site_id')->constrained()->cascadeOnDelete();
-        $table->foreignId('card_id')->constrained()->cascadeOnDelete();
-        $table->string('destination', 20);
-        $table->string('status', 20)->default('pending');
-        $table->unsignedTinyInteger('attempts')->default(0);
-        $table->string('remote_id')->nullable();
-        $table->string('comment_id')->nullable();
-        $table->text('error')->nullable();
-        $table->timestamp('sent_at')->nullable();
-        $table->timestamps();
-
-        $table->unique(['card_id', 'destination']);
+    Schema::table('sites', function (Blueprint $table) {
+        $table->string('icon_path')->nullable()->after('logo_path');
+        $table->boolean('card_show_category')->default(true);
+        $table->boolean('card_show_url')->default(true);
+        $table->string('card_photo_tag', 40)->nullable();
     });
 }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('posts');
-    }
+public function down(): void
+{
+    Schema::table('sites', function (Blueprint $table) {
+        $table->dropColumn(['icon_path', 'card_show_category', 'card_show_url', 'card_photo_tag']);
+    });
+}
 };

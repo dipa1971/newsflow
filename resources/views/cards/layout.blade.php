@@ -10,8 +10,8 @@ body { font-family: 'CardBangla', 'Noto Sans Bengali', 'Nirmala UI', 'Kalpurush'
 .card { position: relative; width: 1080px; height: 1350px; overflow: hidden; }
 .photo { position: absolute; background-size: cover; background-position: center; }
 .hl { font-weight: 700; line-height: 1.38; overflow: hidden; }
-.logo { height: 56px; }
-.site { font-weight: 700; font-size: 30px; }
+.logo { height: 80px; width: auto; max-width: 380px; object-fit: contain; }
+.site { font-weight: 700; font-size: 34px; }
 .date { font-size: 26px; }
 @yield('styles')
 </style>
