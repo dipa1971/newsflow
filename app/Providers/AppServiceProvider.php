@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Site;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -42,5 +43,9 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with('navSites', $sites)->with('navSite', $current)->with('navFailed', $failed);
         });
+
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+    URL::forceScheme('https');
+    }
     }
 }

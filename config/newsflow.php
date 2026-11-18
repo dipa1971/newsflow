@@ -8,6 +8,7 @@ return [
     'card_width' => 1080,
     'card_height' => 1350,
     'max_new_per_check' => 10,
+    'connector_same_host' => env('CONNECTOR_SAME_HOST', true),
 
     // ব্যর্থ পোস্ট আবার চেষ্টার বিরতি (সেকেন্ডে): ১ মিনিট, ৫ মিনিট, ১৫ মিনিট
     'retry_delays' => [60, 300, 900],

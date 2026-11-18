@@ -9,98 +9,133 @@ use App\Models\Article;
 use App\Models\Site;
 use App\Services\FeedReader;
 use App\Support\Bangla;
+use App\Support\SafeUrl;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Http;
 
 class CheckSiteFeed implements ShouldQueue
 {
     use Queueable;
 
     public int $tries = 1;
-public int $timeout = 120;
+    public int $timeout = 120;
 
-public function __construct(public int $siteId)
-{
-}
-
-public function handle(FeedReader $reader): void
-{
-    $site = Site::find($this->siteId);
-
-    if (!$site || !$site->feed_url) {
-        return;
+    public function __construct(public int $siteId)
+    {
     }
 
-    if (!$site->isUsable()) {
-        ActivityLog::record($site->id, 'warn', 'সাইট চালু নেই বা ট্রায়ালের মেয়াদ শেষ, তাই ফিড পড়া হয়নি।');
-        return;
-    }
+    public function handle(FeedReader $reader): void
+    {
+        $site = Site::find($this->siteId);
 
-    // ১) ফিড পড়ি
-    try {
-        $items = $reader->fetch($site->feed_url);
-    } catch (\Throwable $e) {
-        $site->update(['last_checked_at' => now(), 'last_error' => $e->getMessage()]);
-        ActivityLog::record($site->id, 'error', 'ফিড পড়া যায়নি: ' . $e->getMessage());
-        return;
-    }
-
-    $firstRead = $site->baseline_done_at === null;
-    $limit = (int) config('newsflow.max_new_per_check');
-    $newCount = 0;
-    $baselineCount = 0;
-
-    // ২) প্রতিটি খবর দেখি
-    foreach ($items as $item) {
-        $hash = Article::hashFor($item['guid']);
-
-        // আগে দেখা খবর হলে বাদ (ডুপ্লিকেট সুরক্ষা)
-        if (Article::where('site_id', $site->id)->where('guid_hash', $hash)->exists()) {
-            continue;
+        if (!$site || !$site->feed_url) {
+            return;
         }
 
-        $status = 'pending';
-        $reason = null;
-
-        if ($firstRead) {
-            $status = 'baseline';               // প্রথমবার: সব পুরনো ধরি
-        } elseif ($newCount >= $limit) {
-            $status = 'skipped';
-            $reason = 'একসাথে অনেক খবর এসেছে';
+        if (!$site->isUsable()) {
+            ActivityLog::record($site->id, 'warn', 'সাইট চালু নেই বা ট্রায়ালের মেয়াদ শেষ, তাই ফিড পড়া হয়নি।');
+            return;
         }
 
+        // ঠিকানা ব্রিজ ফাইলের হলে ফিড না পড়ে ব্রিজকে ডাক দিই।
+        // ব্রিজ নিজের সাইটের RSS পড়ে নতুন খবর NewsFlow-এ পাঠিয়ে দেয়।
+        if (str_contains($site->feed_url, 'newsflow-connector.php')) {
+            try {
+                SafeUrl::assertPublic($site->feed_url);
+                $token = substr(hash_hmac('sha256', 'poll', (string) $site->secret), 0, 24);
+                $sep = str_contains($site->feed_url, '?') ? '&' : '?';
+
+                $res = Http::timeout(100)
+                    ->withHeaders(['User-Agent' => 'NewsFlowBot/1.0'])
+                    ->get($site->feed_url . $sep . 'nf=poll&token=' . $token);
+
+                $data = $res->json();
+                if (!$res->successful() || !is_array($data) || empty($data['ok'])) {
+                    throw new \RuntimeException('ব্রিজ সাড়া দেয়নি (HTTP ' . $res->status() . ')');
+                }
+
+                $site->update([
+                    'last_checked_at' => now(),
+                    'last_error' => null,
+                    'baseline_done_at' => $site->baseline_done_at ?? now(),
+                ]);
+
+                if (!empty($data['sent'])) {
+                    ActivityLog::record($site->id, 'info',
+                        'ব্রিজ থেকে ' . Bangla::digits(count($data['sent'])) . 'টি নতুন খবর এসেছে।');
+                }
+            } catch (\Throwable $e) {
+                $site->update(['last_checked_at' => now(), 'last_error' => $e->getMessage()]);
+                ActivityLog::record($site->id, 'error', 'ব্রিজে সমস্যা: ' . $e->getMessage());
+            }
+
+            return;
+        }
+
+        // ১) ফিড পড়ি
         try {
-            $article = Article::create(
-                ['site_id' => $site->id, 'guid_hash' => $hash, 'skip_reason' => $reason]
-                + Article::attributesFromItem($item, $status)
-            );
-        } catch (UniqueConstraintViolationException $e) {
-            continue;                           // অন্য একটি কাজ আগেই বসিয়ে ফেলেছে
+            $items = $reader->fetch($site->feed_url);
+        } catch (\Throwable $e) {
+            $site->update(['last_checked_at' => now(), 'last_error' => $e->getMessage()]);
+            ActivityLog::record($site->id, 'error', 'ফিড পড়া যায়নি: ' . $e->getMessage());
+            return;
         }
 
-        if ($status === 'pending') {
-            $newCount++;
-            ProcessArticle::dispatch($article->id);
-        } elseif ($status === 'baseline') {
-            $baselineCount++;
+        $firstRead = $site->baseline_done_at === null;
+        $limit = (int) config('newsflow.max_new_per_check');
+        $newCount = 0;
+        $baselineCount = 0;
+
+        // ২) প্রতিটি খবর দেখি
+        foreach ($items as $item) {
+            $hash = Article::hashFor($item['guid']);
+
+            // আগে দেখা খবর হলে বাদ (ডুপ্লিকেট সুরক্ষা)
+            if (Article::where('site_id', $site->id)->where('guid_hash', $hash)->exists()) {
+                continue;
+            }
+
+            $status = 'pending';
+            $reason = null;
+
+            if ($firstRead) {
+                $status = 'baseline';               // প্রথমবার: সব পুরনো ধরি
+            } elseif ($newCount >= $limit) {
+                $status = 'skipped';
+                $reason = 'একসাথে অনেক খবর এসেছে';
+            }
+
+            try {
+                $article = Article::create(
+                    ['site_id' => $site->id, 'guid_hash' => $hash, 'skip_reason' => $reason]
+                    + Article::attributesFromItem($item, $status)
+                );
+            } catch (UniqueConstraintViolationException $e) {
+                continue;                           // অন্য একটি কাজ আগেই বসিয়ে ফেলেছে
+            }
+
+            if ($status === 'pending') {
+                $newCount++;
+                ProcessArticle::dispatch($article->id);
+            } elseif ($status === 'baseline') {
+                $baselineCount++;
+            }
+        }
+
+        // ৩) সাইটের অবস্থা হালনাগাদ
+        $site->update([
+            'last_checked_at' => now(),
+            'last_error' => null,
+            'baseline_done_at' => $site->baseline_done_at ?? now(),
+        ]);
+
+        // ৪) লগ (কিছু ঘটলে তবেই, নইলে প্রতি ৫ মিনিটে লগ ভরে যাবে)
+        if ($firstRead) {
+            ActivityLog::record($site->id, 'info',
+                'প্রথমবার ফিড পড়া হয়েছে। ' . Bangla::digits($baselineCount) . 'টি বর্তমান খবর পুরনো ধরা হলো, এগুলোর কার্ড হবে না।');
+        } elseif ($newCount > 0) {
+            ActivityLog::record($site->id, 'info',
+                Bangla::digits($newCount) . 'টি নতুন খবর পাওয়া গেছে, কার্ড তৈরি হচ্ছে।');
         }
     }
-
-    // ৩) সাইটের অবস্থা হালনাগাদ
-    $site->update([
-        'last_checked_at' => now(),
-        'last_error' => null,
-        'baseline_done_at' => $site->baseline_done_at ?? now(),
-    ]);
-
-    // ৪) লগ (কিছু ঘটলে তবেই, নইলে প্রতি ৫ মিনিটে লগ ভরে যাবে)
-    if ($firstRead) {
-        ActivityLog::record($site->id, 'info',
-            'প্রথমবার ফিড পড়া হয়েছে। ' . Bangla::digits($baselineCount) . 'টি বর্তমান খবর পুরনো ধরা হলো, এগুলোর কার্ড হবে না।');
-    } elseif ($newCount > 0) {
-        ActivityLog::record($site->id, 'info',
-            Bangla::digits($newCount) . 'টি নতুন খবর পাওয়া গেছে, কার্ড তৈরি হচ্ছে।');
-    }
-}
-
-
 }

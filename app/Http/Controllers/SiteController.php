@@ -262,9 +262,12 @@ class SiteController extends Controller
     public function regenerateSecret(Site $site)
     {
         $this->own($site);
-        $site->update(['secret' => Str::random(40)]);
+        $secret = Str::random(40);
+        $site->update(['secret' => $secret]);
 
-        return back()->with('ok', 'নতুন গোপন চাবি তৈরি হয়েছে। পুরনোটা আর কাজ করবে না।');
+        return back()
+            ->with('ok', 'নতুন গোপন চাবি তৈরি হয়েছে। পুরনোটা আর কাজ করবে না।')
+            ->with('new_secret', $secret);
     }
 
     // ---------- কাজের বোতাম ----------
@@ -277,13 +280,29 @@ class SiteController extends Controller
         return back()->with('ok', 'ফিড পরীক্ষার কাজ কিউতে দেওয়া হয়েছে। কয়েক সেকেন্ড পর পাতা রিফ্রেশ করুন।');
     }
 
-    // ফিডের সবচেয়ে নতুন খবর নিয়ে কার্ড বানিয়ে চালু গন্তব্যগুলোতে পাঠায়
+    // সবচেয়ে নতুন খবর নিয়ে কার্ড বানিয়ে চালু গন্তব্যগুলোতে পাঠায়
     public function testLatest(Site $site, FeedReader $reader)
     {
         $this->own($site);
 
         if (!$site->feed_url) {
             return back()->withErrors(['feed_url' => 'আগে সাইটের সেটিংসে ফিডের ঠিকানা দিন।']);
+        }
+
+        // ব্রিজ ফাইলের ঠিকানা হলে ফিড পড়া যায় না (ব্রিজ নিজে খবর পাঠায়)।
+        // তাই NewsFlow-এ আগে আসা সবচেয়ে নতুন খবরটাই আবার পাঠাই।
+        if (str_contains($site->feed_url, 'newsflow-connector.php')) {
+            $article = $site->articles()->where('status', '!=', 'baseline')->latest()->first();
+
+            if (!$article) {
+                return back()->withErrors(['feed_url' =>
+                    'ব্রিজ দিয়ে এখনো কোনো খবর আসেনি। ব্লগে নতুন খবর দিয়ে ব্রিজ পাতায় "এখনই চালান" চাপুন।']);
+            }
+
+            $article->update(['status' => 'pending', 'skip_reason' => null]);
+            ProcessArticle::dispatch($article->id);
+
+            return back()->with('ok', 'ব্রিজ থেকে পাওয়া সর্বশেষ খবরের কাজ কিউতে দেওয়া হয়েছে। কার্ড বানিয়ে চালু গন্তব্যে পাঠানো হবে।');
         }
 
         try {

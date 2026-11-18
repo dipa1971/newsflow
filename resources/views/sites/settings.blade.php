@@ -48,6 +48,13 @@
 <div class="panel">
     <div class="panel-head"><h2>কানেক্টরের তথ্য</h2><small>পরের ধাপে লাগবে</small></div>
     <dl class="kv">
+        @if (session('new_secret'))
+        <div class="hint" style="margin-top:16px;padding:12px 14px;border:1px solid #e0b34a;border-radius:8px;background:#fff8e6">
+            <b>নতুন গোপন চাবি (এই একবারই দেখানো হচ্ছে, এখনই কপি করুন):</b><br>
+            <code style="word-break:break-all;user-select:all">{{ session('new_secret') }}</code>
+        </div>
+    @endif
+        <dt>প্ল্যাটফর্ম URL</dt><dd>{{ rtrim(config('app.url'), '/') }}</dd>
         <dt>সাইট আইডি</dt><dd>{{ $site->site_key }}</dd>
         <dt>গোপন চাবি</dt><dd>{{ $site->maskedSecret() }}</dd>
         <dt>ট্রায়াল</dt><dd>{{ Bangla::digits($site->trialDaysLeft()) }} দিন বাকি</dd>
