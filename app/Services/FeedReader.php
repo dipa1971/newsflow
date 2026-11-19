@@ -9,24 +9,31 @@ use SimpleXMLElement;
 
 class FeedReader
 {
-    /** ফিড থেকে খবরের তালিকা ফেরত দেয়। সমস্যা হলে ত্রুটি ছোঁড়ে। */
+    /** ফিড থেকে খবরের তালিকা ফেরত দেয়। সমস্যা হলে কারণসহ ত্রুটি ছোঁড়ে। */
     public function fetch(string $feedUrl): array
     {
         SafeUrl::assertPublic($feedUrl);
 
-        $response = Http::timeout(15)
-            ->withHeaders(['User-Agent' => 'NewsFlowBot/1.0'])
+        $response = Http::timeout(20)
+            ->withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (compatible; NewsFlowBot/1.0)',
+                'Accept' => 'application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5',
+            ])
             ->get($feedUrl);
 
+        $body = $response->body();
+        $type = (string) $response->header('Content-Type');
+
         if (!$response->successful()) {
-            throw new \RuntimeException('ফিড খোলা যায়নি (HTTP ' . $response->status() . ')।');
+            throw new \RuntimeException(
+                $this->describe('ফিড খোলা যায়নি (HTTP ' . $response->status() . ')।', $body, $type)
+            );
         }
 
-        libxml_use_internal_errors(true);
-        $xml = simplexml_load_string($response->body(), SimpleXMLElement::class, LIBXML_NOCDATA | LIBXML_NONET);
+        $xml = $this->parseXml($body);
 
-        if ($xml === false) {
-            throw new \RuntimeException('ফিডটি সঠিক XML নয়।');
+        if ($xml === null) {
+            throw new \RuntimeException($this->describe('ফিডটি সঠিক XML নয়।', $body, $type));
         }
 
         $items = [];
@@ -43,6 +50,78 @@ class FeedReader
 
         // শিরোনাম বা লিংক ছাড়া খবর বাদ
         return array_values(array_filter($items, fn ($i) => $i['title'] !== '' && $i['link'] !== ''));
+    }
+
+    /**
+     * লেখাটাকে XML হিসেবে পড়ার চেষ্টা। আগে আবর্জনা পরিষ্কার করি, না হলে '&' সারিয়ে আবার চেষ্টা।
+     * না পারলে null ফেরত দেয়।
+     */
+    private function parseXml(string $body): ?SimpleXMLElement
+    {
+        // UTF-8 BOM সরাই
+        $body = preg_replace('/^\xEF\xBB\xBF/', '', $body);
+
+        // XML শুরুর আগের আবর্জনা (ফাঁকা লাইন, PHP warning) ছেঁটে ফেলি
+        if (!preg_match('/<\?xml\b|<rss\b|<feed\b|<rdf:RDF\b/i', $body, $m, PREG_OFFSET_CAPTURE)) {
+            return null;
+        }
+        $body = substr($body, $m[0][1]);
+
+        // শেষ বন্ধ-ট্যাগের পরের আবর্জনাও ছেঁটে ফেলি
+        if (preg_match_all('/<\/(rss|feed|rdf:RDF)>/i', $body, $mm, PREG_OFFSET_CAPTURE) && !empty($mm[0])) {
+            $last = end($mm[0]);
+            $body = substr($body, 0, $last[1] + strlen($last[0]));
+        }
+
+        // XML-এ অচলে এমন নিয়ন্ত্রণ-চিহ্ন বাদ
+        $body = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $body);
+
+        // দ্বিতীয় চেষ্টায় ভাঙা '&' (যেমন: Tom & Jerry) সারাই
+        $fixed = preg_replace('/&(?!(?:amp|lt|gt|quot|apos|#[0-9]+|#x[0-9a-fA-F]+);)/', '&amp;', $body);
+
+        libxml_use_internal_errors(true);
+
+        foreach ([$body, $fixed] as $candidate) {
+            libxml_clear_errors();
+            $xml = simplexml_load_string($candidate, SimpleXMLElement::class, LIBXML_NOCDATA | LIBXML_NONET);
+
+            if ($xml !== false) {
+                libxml_clear_errors();
+
+                return $xml;
+            }
+        }
+
+        libxml_clear_errors();
+
+        return null;
+    }
+
+    // ত্রুটির বার্তার সঙ্গে "আসলে কী এসেছিল" জুড়ে দিই, যাতে অনুমান করতে না হয়
+    private function describe(string $message, string $body, string $type): string
+    {
+        $lower = strtolower($body);
+        $hint = null;
+
+        if (str_contains($lower, 'requires javascript') || str_contains($lower, 'aes.js') || str_contains($lower, '__test')) {
+            $hint = 'সাইটের হোস্টিংয়ের বট-সুরক্ষা (JavaScript পরীক্ষা) আমাদের server-কে আটকাচ্ছে। এই সাইটের জন্য ব্রিজ (connector) লাগবে।';
+        } elseif (str_contains($lower, 'just a moment') || str_contains($lower, 'cf-chl') || str_contains($lower, 'attention required')) {
+            $hint = 'Cloudflare-এর যাচাইয়ের পাতা এসেছে।';
+        } elseif (preg_match('/\b(Deprecated|Warning|Notice|Fatal error|Parse error)\b\s*:/', $body)) {
+            $hint = 'PHP-র error বা warning লেখা ছাপা হয়ে ফিডের ভেতরে ঢুকছে। ওই সাইটের PHP-তে display_errors বন্ধ করুন।';
+        } elseif (str_contains($lower, '<html') || str_contains($lower, '<!doctype html')) {
+            $hint = 'ঠিকানা থেকে ওয়েবপাতা (HTML) এসেছে, ফিড নয়। ফিডের ঠিকানা ঠিক আছে কি না দেখুন।';
+        } elseif (trim($body) === '') {
+            $hint = 'ঠিকানা থেকে খালি উত্তর এসেছে।';
+        }
+
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags($body)));
+        $text = mb_convert_encoding(mb_substr($text, 0, 140), 'UTF-8', 'UTF-8');
+
+        return $message
+            . ' [Content-Type: ' . ($type !== '' ? $type : 'নেই') . ']'
+            . ($hint ? ' সম্ভাব্য কারণ: ' . $hint : '')
+            . ($text !== '' ? ' শুরুর লেখা: “' . $text . '”' : '');
     }
 
     private function fromRss(SimpleXMLElement $item, string $base): array
